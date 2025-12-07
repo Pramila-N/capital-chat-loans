@@ -100,14 +100,6 @@ export const LandingPage = ({ onStartChat }: LandingPageProps) => {
                 Start Conversation
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-              
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-full px-8 h-14 text-lg border-primary/20 hover:bg-primary/5"
-              >
-                Check Eligibility
-              </Button>
             </motion.div>
 
             {/* Trust Stats */}

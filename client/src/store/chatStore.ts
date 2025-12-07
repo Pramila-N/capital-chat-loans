@@ -105,6 +105,7 @@ export const useChatStore = create<ChatState>((set) => ({
       currentStep: 'welcome',
       userDetails: {},
       loanOffer: null,
+      isChatOpen: false,
       isVerified: false,
       phone: undefined,
       creditScore: undefined,
