@@ -42,7 +42,7 @@ const Index = () => {
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleOpenWidget}
-            className="fixed bottom-6 right-6 group cursor-pointer z-50"
+            className="fixed bottom-6 right-6 group cursor-pointer z-30"
           >
             {/* Animated Chat Messages - Outside bubble */}
             <motion.div

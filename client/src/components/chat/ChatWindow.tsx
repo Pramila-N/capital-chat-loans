@@ -37,11 +37,28 @@ export const ChatWindow = ({ isFullPage = false, isInline = false, onClose }: Ch
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  const handleRestart = () => {
+    resetChat();
+    setTimeout(() => initializeChat(), 100);
+  };
+
+  const handleUserMessage = () => {
+    const trimmedInput = input.trim().toLowerCase();
+    // Check if user wants to restart the chat
+    if (['start again', 'restart', 'new chat', 'start over'].some(word => trimmedInput.includes(word))) {
+      handleRestart();
+      setInput('');
+      inputRef.current?.focus();
+    } else {
+      sendMessage(input);
+      setInput('');
+      inputRef.current?.focus();
+    }
+  };
+
   const handleSend = () => {
     if (!input.trim()) return;
-    sendMessage(input);
-    setInput('');
-    inputRef.current?.focus();
+    handleUserMessage();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -49,11 +66,6 @@ export const ChatWindow = ({ isFullPage = false, isInline = false, onClose }: Ch
       e.preventDefault();
       handleSend();
     }
-  };
-
-  const handleRestart = () => {
-    resetChat();
-    setTimeout(() => initializeChat(), 100);
   };
 
   return (
@@ -66,8 +78,8 @@ export const ChatWindow = ({ isFullPage = false, isInline = false, onClose }: Ch
         isInline
           ? 'h-full w-full'
           : isFullPage 
-            ? 'h-screen w-screen fixed inset-0 z-50' 
-            : 'fixed bottom-4 right-4 w-[400px] h-[600px] max-h-[80vh] rounded-2xl shadow-prominent border border-border overflow-hidden z-50'
+            ? 'h-screen w-screen fixed inset-0 z-40' 
+            : 'fixed bottom-4 right-4 w-[400px] h-[600px] max-h-[80vh] rounded-2xl shadow-prominent border border-border overflow-hidden z-40'
       )}
     >
       {/* Header */}
