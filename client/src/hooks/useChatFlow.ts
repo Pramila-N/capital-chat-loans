@@ -77,6 +77,7 @@ export const useChatFlow = () => {
         phone: data.phone as string,
         email: data.email as string 
       });
+      setStep('sales');
       
       addMessage({ 
         content: `Name: ${data.name}\nPhone: +91 ${data.phone}\nEmail: ${data.email}`, 
@@ -264,30 +265,71 @@ export const useChatFlow = () => {
       );
       
       await delay(3000);
-      
-      setStep('sanction');
-      
-      // Calculate loan offer based on income and requested amount
+
+      // Eligibility logic
       const income = userDetails.income || 50000;
       const requestedAmount = parseInt(userDetails.loanAmount || '100000');
-      const maxLoan = Math.min(requestedAmount, income * 20, 1000000);
-      const interestRate = creditScore >= 750 ? 9.5 : creditScore >= 700 ? 10.5 : 11.5;
       const tenure = userDetails.tenure || 36;
-      const emi = Math.round((maxLoan * (interestRate / 1200) * Math.pow(1 + interestRate / 1200, tenure)) / (Math.pow(1 + interestRate / 1200, tenure) - 1));
-      const processingFee = Math.round(maxLoan * 0.02);
-      
+      const preApprovedLimit = income * 15; // base pre-approved limit
+
+      const calcEmi = (amount: number, rate: number, months: number) => {
+        const monthly = rate / 1200;
+        return Math.round((amount * monthly * Math.pow(1 + monthly, months)) / (Math.pow(1 + monthly, months) - 1));
+      };
+
+      const interestRate = creditScore >= 750 ? 9.5 : creditScore >= 700 ? 10.5 : 11.5;
+      const emiAtRequested = calcEmi(requestedAmount, interestRate, tenure);
+
+      let approved = false;
+      let approvedAmount = requestedAmount;
+      let decisionMsg = '';
+
+      if (creditScore < 700) {
+        approved = false;
+        decisionMsg = 'Application rejected: credit score below 700.';
+      } else if (requestedAmount <= preApprovedLimit) {
+        approved = true;
+        decisionMsg = 'Approved instantly within your pre-approved limit.';
+      } else if (requestedAmount <= preApprovedLimit * 2) {
+        if (emiAtRequested <= income * 0.5) {
+          approved = true;
+          decisionMsg = 'Approved after income check (EMI within 50% of salary).';
+        } else {
+          approved = false;
+          decisionMsg = 'Rejected: EMI exceeds 50% of your salary.';
+        }
+      } else {
+        approved = false;
+        decisionMsg = 'Rejected: requested amount exceeds 2x your pre-approved limit.';
+      }
+
+      if (!approved) {
+        await simulateBotResponse(
+          '',
+          'status',
+          { status: 'error', title: 'Application Rejected', description: decisionMsg, type: 'eligibility' }
+        );
+        setStep('complete');
+        return;
+      }
+
+      setStep('sanction');
+
+      const processingFee = Math.round(approvedAmount * 0.02);
+      const offerEmi = calcEmi(approvedAmount, interestRate, tenure);
+
       const offer: LoanOffer = {
-        amount: maxLoan,
+        amount: approvedAmount,
         interestRate,
         tenure,
-        emi,
+        emi: offerEmi,
         processingFee,
       };
       
       setLoanOffer(offer);
       
       await simulateBotResponse(
-        "🎊 Fantastic news! Based on your profile, you're pre-approved for a personal loan!",
+        `🎊 Fantastic news! ${decisionMsg}`,
         'offer'
       );
     }
