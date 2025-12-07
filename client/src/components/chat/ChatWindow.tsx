@@ -17,10 +17,11 @@ import { cn } from '@/lib/utils';
 
 interface ChatWindowProps {
   isFullPage?: boolean;
+  isInline?: boolean;
   onClose?: () => void;
 }
 
-export const ChatWindow = ({ isFullPage = false, onClose }: ChatWindowProps) => {
+export const ChatWindow = ({ isFullPage = false, isInline = false, onClose }: ChatWindowProps) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,9 +63,11 @@ export const ChatWindow = ({ isFullPage = false, onClose }: ChatWindowProps) => 
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
         'flex flex-col bg-background',
-        isFullPage 
-          ? 'fixed inset-0 z-50' 
-          : 'fixed bottom-4 right-4 w-[400px] h-[600px] max-h-[80vh] rounded-2xl shadow-prominent border border-border overflow-hidden z-50'
+        isInline
+          ? 'h-full w-full'
+          : isFullPage 
+            ? 'h-screen w-screen fixed inset-0 z-50' 
+            : 'fixed bottom-4 right-4 w-[400px] h-[600px] max-h-[80vh] rounded-2xl shadow-prominent border border-border overflow-hidden z-50'
       )}
     >
       {/* Header */}
@@ -127,7 +130,17 @@ export const ChatWindow = ({ isFullPage = false, onClose }: ChatWindowProps) => 
                 )}
                 {message.type === 'form' && message.data?.formType && (
                   <FormCard
-                    type={message.data.formType as 'pan' | 'dob' | 'employment' | 'income' | 'contact'}
+                    type={message.data.formType as
+                      'pan' |
+                      'dob' |
+                      'employment' |
+                      'income' |
+                      'contact' |
+                      'address' |
+                      'loanAmount' |
+                      'loanPurpose' |
+                      'tenure' |
+                      'documents'}
                     onSubmit={handleFormSubmit}
                   />
                 )}
@@ -149,7 +162,24 @@ export const ChatWindow = ({ isFullPage = false, onClose }: ChatWindowProps) => 
                   <SanctionLetterCard
                     offer={loanOffer}
                     userName={userDetails.name || ''}
-                    onDownload={() => console.log('Download sanction letter')}
+                    onDownload={() => {
+                      const content = `Tata Capital Sanction Letter\n\nApplicant: ${
+                        userDetails.name || 'Valued Customer'
+                      }\nLoan Amount: ₹${loanOffer.amount.toLocaleString('en-IN')}\nInterest Rate: ${
+                        loanOffer.interestRate
+                      }% p.a.\nTenure: ${loanOffer.tenure} months\nMonthly EMI: ₹${loanOffer.emi.toLocaleString(
+                        'en-IN'
+                      )}\nProcessing Fee: ₹${loanOffer.processingFee.toLocaleString('en-IN')}\n\nThis is a system-generated letter.`;
+                      const blob = new Blob([content], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = 'Sanction_Letter.txt';
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                      URL.revokeObjectURL(url);
+                    }}
                   />
                 )}
               </ChatBubble>

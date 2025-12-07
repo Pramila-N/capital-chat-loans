@@ -6,15 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowRight } from 'lucide-react';
+import { CalendarIcon, ArrowRight, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-type FormType = 'pan' | 'dob' | 'employment' | 'income' | 'contact';
+type FormType = 'pan' | 'dob' | 'employment' | 'income' | 'contact' | 'address' | 'loanAmount' | 'loanPurpose' | 'tenure' | 'documents';
 
 interface FormCardProps {
   type: FormType;
-  onSubmit: (data: Record<string, string | number>) => void;
+  onSubmit: (data: Record<string, string | number | File[]>) => void;
 }
 
 export const FormCard = ({ type, onSubmit }: FormCardProps) => {
@@ -25,6 +25,15 @@ export const FormCard = ({ type, onSubmit }: FormCardProps) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [loanPurpose, setLoanPurpose] = useState('');
+  const [tenure, setTenure] = useState('');
+  const [uploadedDocs, setUploadedDocs] = useState<{ [key: string]: File | null }>({
+    aadhaar: null,
+    panDoc: null,
+    salarySlips: null,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +53,23 @@ export const FormCard = ({ type, onSubmit }: FormCardProps) => {
       case 'contact':
         onSubmit({ name, phone, email });
         break;
+      case 'address':
+        onSubmit({ address });
+        break;
+      case 'loanAmount':
+        onSubmit({ loanAmount: parseInt(loanAmount) });
+        break;
+      case 'loanPurpose':
+        onSubmit({ loanPurpose });
+        break;
+      case 'tenure':
+        onSubmit({ tenure: parseInt(tenure) });
+        break;
+      case 'documents': {
+        const files = Object.values(uploadedDocs).filter(f => f !== null);
+        onSubmit({ documents: files });
+        break;
+      }
     }
   };
 
@@ -58,10 +84,24 @@ export const FormCard = ({ type, onSubmit }: FormCardProps) => {
       case 'income':
         return parseInt(income) > 0;
       case 'contact':
-        return name.length > 2 && phone.length === 10;
+        return name.length > 2 && phone.length === 10 && email.length > 0;
+      case 'address':
+        return address.length > 5;
+      case 'loanAmount':
+        return parseInt(loanAmount) > 0;
+      case 'loanPurpose':
+        return !!loanPurpose;
+      case 'tenure':
+        return parseInt(tenure) > 0 && parseInt(tenure) <= 84;
+      case 'documents':
+        return uploadedDocs.aadhaar !== null && uploadedDocs.panDoc !== null && uploadedDocs.salarySlips !== null;
       default:
         return false;
     }
+  };
+
+  const handleFileUpload = (docType: string, file: File | null) => {
+    setUploadedDocs(prev => ({ ...prev, [docType]: file }));
   };
 
   return (
@@ -179,7 +219,7 @@ export const FormCard = ({ type, onSubmit }: FormCardProps) => {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground">Email (Optional)</Label>
+            <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
             <Input
               id="email"
               type="email"
@@ -189,6 +229,122 @@ export const FormCard = ({ type, onSubmit }: FormCardProps) => {
               className="rounded-xl border-input focus:border-primary focus:ring-primary"
             />
           </div>
+        </div>
+      )}
+
+      {type === 'address' && (
+        <div className="space-y-2">
+          <Label htmlFor="address" className="text-sm font-medium text-foreground">Address</Label>
+          <textarea
+            id="address"
+            placeholder="Enter your complete address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl border border-input focus:border-primary focus:ring-primary focus:outline-none"
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">Include street, city, state and pincode</p>
+        </div>
+      )}
+
+      {type === 'loanAmount' && (
+        <div className="space-y-2">
+          <Label htmlFor="loanAmount" className="text-sm font-medium text-foreground">Loan Amount</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
+            <Input
+              id="loanAmount"
+              type="number"
+              placeholder="100000"
+              value={loanAmount}
+              onChange={(e) => setLoanAmount(e.target.value)}
+              className="pl-8 rounded-xl border-input focus:border-primary focus:ring-primary"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Enter desired loan amount</p>
+        </div>
+      )}
+
+      {type === 'loanPurpose' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Purpose of Loan</Label>
+          <Select value={loanPurpose} onValueChange={setLoanPurpose}>
+            <SelectTrigger className="rounded-xl border-input">
+              <SelectValue placeholder="Select loan purpose" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="home">Home Improvement</SelectItem>
+              <SelectItem value="education">Education</SelectItem>
+              <SelectItem value="medical">Medical Expenses</SelectItem>
+              <SelectItem value="business">Business Needs</SelectItem>
+              <SelectItem value="debt">Debt Consolidation</SelectItem>
+              <SelectItem value="travel">Travel</SelectItem>
+              <SelectItem value="wedding">Wedding</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {type === 'tenure' && (
+        <div className="space-y-2">
+          <Label htmlFor="tenure" className="text-sm font-medium text-foreground">Loan Tenure (Months)</Label>
+          <div className="relative">
+            <Input
+              id="tenure"
+              type="number"
+              placeholder="36"
+              value={tenure}
+              onChange={(e) => setTenure(e.target.value)}
+              min="12"
+              max="84"
+              step="12"
+              className="rounded-xl border-input focus:border-primary focus:ring-primary"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">months</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Select between 12-84 months</p>
+        </div>
+      )}
+
+      {type === 'documents' && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-foreground">Upload Documents</p>
+          {['aadhaar', 'panDoc', 'salarySlips'].map(docType => (
+            <div key={docType} className="space-y-2">
+              <Label className="text-sm font-medium text-foreground capitalize">
+                {docType === 'salarySlips' ? 'Salary Slips (5)' : docType === 'panDoc' ? 'PAN' : docType.charAt(0).toUpperCase() + docType.slice(1)}
+              </Label>
+              <div 
+                className="border-2 border-dashed border-primary/30 rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition"
+                onClick={() => document.getElementById(docType)?.click()}
+              >
+                <input
+                  id={docType}
+                  type="file"
+                  title={`Upload ${docType === 'salarySlips' ? 'salary slips' : docType}`}
+                  multiple={docType === 'salarySlips'}
+                  accept={docType === 'salarySlips' ? '.pdf,.jpg,.jpeg,.png' : '.pdf,.jpg,.jpeg,.png'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(docType, file);
+                  }}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center pointer-events-none">
+                  <Upload className="w-5 h-5 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {uploadedDocs[docType as keyof typeof uploadedDocs] ? '✓ Uploaded' : 'Click to upload'}
+                  </p>
+                  {uploadedDocs[docType as keyof typeof uploadedDocs] && (
+                    <p className="text-xs text-primary mt-1">
+                      {uploadedDocs[docType as keyof typeof uploadedDocs]?.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

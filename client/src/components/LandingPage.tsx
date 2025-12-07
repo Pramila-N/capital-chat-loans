@@ -3,12 +3,17 @@ import { ArrowRight, Shield, Clock, BadgeCheck, Sparkles, MessageCircle, Star, T
 import { Button } from '@/components/ui/button';
 import { LoanSlider } from '@/components/LoanSlider';
 import aiAssistantImage from '@/assets/ai-assistant.png';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useChatStore } from '@/store/chatStore';
 
 interface LandingPageProps {
   onStartChat: () => void;
 }
 
 export const LandingPage = ({ onStartChat }: LandingPageProps) => {
+  const navigate = useNavigate();
+  const { isVerified } = useChatStore();
   const features = [
     { icon: Clock, title: 'Instant Approval', description: 'Get approved in under 5 minutes with our AI' },
     { icon: Shield, title: '100% Secure', description: 'Bank-grade encryption protects your data' },
@@ -84,7 +89,10 @@ export const LandingPage = ({ onStartChat }: LandingPageProps) => {
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
               <Button
-                onClick={onStartChat}
+                onClick={() => {
+                  if (!isVerified) navigate('/login');
+                  else navigate('/chat');
+                }}
                 size="lg"
                 className="gradient-primary text-primary-foreground font-semibold rounded-full px-8 h-14 text-lg shadow-elevated hover:shadow-prominent transition-all duration-300 hover:scale-105 group"
               >
@@ -92,6 +100,7 @@ export const LandingPage = ({ onStartChat }: LandingPageProps) => {
                 Start Conversation
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
+              
               <Button
                 variant="outline"
                 size="lg"

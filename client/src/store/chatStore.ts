@@ -34,9 +34,17 @@ interface ChatState {
     loanAmount?: string;
     phone?: string;
     email?: string;
+    address?: string;
+    loanPurpose?: string;
+    tenure?: number;
   };
   loanOffer: LoanOffer | null;
   isChatOpen: boolean;
+  // authentication
+  isVerified: boolean;
+  phone?: string;
+  creditScore?: number;
+  documentsUploaded: boolean;
   
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setTyping: (typing: boolean) => void;
@@ -44,6 +52,10 @@ interface ChatState {
   updateUserDetails: (details: Partial<ChatState['userDetails']>) => void;
   setLoanOffer: (offer: LoanOffer) => void;
   setChatOpen: (open: boolean) => void;
+  setVerified: (verified: boolean) => void;
+  setPhone: (phone?: string) => void;
+  setCreditScore: (score: number) => void;
+  setDocumentsUploaded: (uploaded: boolean) => void;
   resetChat: () => void;
 }
 
@@ -56,6 +68,10 @@ export const useChatStore = create<ChatState>((set) => ({
   userDetails: {},
   loanOffer: null,
   isChatOpen: false,
+  isVerified: false,
+  phone: undefined,
+  creditScore: undefined,
+  documentsUploaded: false,
   
   addMessage: (message) =>
     set((state) => ({
@@ -77,6 +93,10 @@ export const useChatStore = create<ChatState>((set) => ({
   setLoanOffer: (loanOffer) => set({ loanOffer }),
   
   setChatOpen: (isChatOpen) => set({ isChatOpen }),
+  setVerified: (verified: boolean) => set({ isVerified: verified }),
+  setPhone: (phone?: string) => set({ phone }),
+  setCreditScore: (creditScore: number) => set({ creditScore }),
+  setDocumentsUploaded: (documentsUploaded: boolean) => set({ documentsUploaded }),
   
   resetChat: () =>
     set({
@@ -85,5 +105,9 @@ export const useChatStore = create<ChatState>((set) => ({
       currentStep: 'welcome',
       userDetails: {},
       loanOffer: null,
+      isVerified: false,
+      phone: undefined,
+      creditScore: undefined,
+      documentsUploaded: false,
     }),
 }));

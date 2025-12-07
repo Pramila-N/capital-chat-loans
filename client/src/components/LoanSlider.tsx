@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Slider } from '@/components/ui/slider';
 import { IndianRupee, Calendar, TrendingDown } from 'lucide-react';
+import { useChatStore } from '@/store/chatStore';
 
 interface LoanSliderProps {
   onStartChat: () => void;
 }
 
 export const LoanSlider = ({ onStartChat }: LoanSliderProps) => {
+  const navigate = useNavigate();
+  const { isVerified } = useChatStore();
   const [amount, setAmount] = useState([300000]);
   const [tenure, setTenure] = useState([24]);
   
@@ -90,7 +94,10 @@ export const LoanSlider = ({ onStartChat }: LoanSliderProps) => {
       </div>
       
       <button
-        onClick={onStartChat}
+        onClick={() => {
+          if (!isVerified) navigate('/login');
+          else onStartChat();
+        }}
         className="w-full mt-4 py-3 gradient-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-opacity"
       >
         Apply for This Amount

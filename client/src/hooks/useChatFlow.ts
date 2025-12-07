@@ -10,6 +10,8 @@ export const useChatFlow = () => {
     setStep,
     updateUserDetails,
     setLoanOffer,
+    setCreditScore,
+    setDocumentsUploaded,
     currentStep,
     userDetails,
   } = useChatStore();
@@ -36,7 +38,7 @@ export const useChatFlow = () => {
     
     await delay(500);
     await simulateBotResponse(
-      "To get started, could you please share your name and contact details?",
+      "To get started, could you please share your contact details?",
       'form',
       { formType: 'contact' }
     );
@@ -67,7 +69,8 @@ export const useChatFlow = () => {
     }
   }, [addMessage, updateUserDetails, setStep, simulateBotResponse]);
 
-  const handleFormSubmit = useCallback(async (data: Record<string, string | number>) => {
+  const handleFormSubmit = useCallback(async (data: Record<string, string | number | File[]>) => {
+    // Contact Form - name, phone, email
     if (data.name && data.phone) {
       updateUserDetails({ 
         name: data.name as string, 
@@ -76,20 +79,101 @@ export const useChatFlow = () => {
       });
       
       addMessage({ 
-        content: `Name: ${data.name}\nPhone: +91 ${data.phone}${data.email ? `\nEmail: ${data.email}` : ''}`, 
+        content: `Name: ${data.name}\nPhone: +91 ${data.phone}\nEmail: ${data.email}`, 
         sender: 'user', 
         type: 'text' 
       });
       
-      setStep('sales');
-      
+      await delay(500);
       await simulateBotResponse(
-        `Nice to meet you, ${data.name}! 🎉 How much loan amount are you looking for?`,
-        'quick-reply',
-        { options: ['₹1-3 Lakhs', '₹3-5 Lakhs', '₹5-10 Lakhs', '₹10+ Lakhs'] }
+        `Nice to meet you, ${data.name}! 😊 Now, could you please share your address?`,
+        'form',
+        { formType: 'address' }
       );
     }
     
+    // Address Form
+    else if (data.address) {
+      updateUserDetails({ address: data.address as string });
+      addMessage({ content: `Address: ${data.address}`, sender: 'user', type: 'text' });
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Great! How much loan amount are you looking for?",
+        'form',
+        { formType: 'loanAmount' }
+      );
+    }
+    
+    // Loan Amount Form
+    else if (data.loanAmount) {
+      updateUserDetails({ loanAmount: (data.loanAmount as number).toString() });
+      addMessage({ content: `₹${(data.loanAmount as number).toLocaleString('en-IN')}`, sender: 'user', type: 'text' });
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Perfect! What's the purpose of this loan?",
+        'form',
+        { formType: 'loanPurpose' }
+      );
+    }
+    
+    // Loan Purpose Form
+    else if (data.loanPurpose) {
+      updateUserDetails({ loanPurpose: data.loanPurpose as string });
+      addMessage({ content: `Purpose: ${data.loanPurpose}`, sender: 'user', type: 'text' });
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Excellent! For how many months would you like the loan?",
+        'form',
+        { formType: 'tenure' }
+      );
+    }
+    
+    // Tenure Form
+    else if (data.tenure) {
+      updateUserDetails({ tenure: data.tenure as number });
+      const months = data.tenure;
+      addMessage({ content: `Tenure: ${months} months`, sender: 'user', type: 'text' });
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Thank you! Now I need some financial details. What's your monthly income?",
+        'form',
+        { formType: 'income' }
+      );
+    }
+    
+    // Income Form
+    else if (data.income) {
+      updateUserDetails({ income: data.income as number });
+      addMessage({ content: `Monthly Income: ₹${(data.income as number).toLocaleString('en-IN')}`, sender: 'user', type: 'text' });
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Almost there! What's your employment type?",
+        'form',
+        { formType: 'employment' }
+      );
+    }
+    
+    // Employment Form
+    else if (data.employment) {
+      updateUserDetails({ employment: data.employment as string });
+      addMessage({ content: `Employment: ${data.employment}`, sender: 'user', type: 'text' });
+      
+      setStep('kyc');
+      
+      await delay(500);
+      await simulateBotResponse(
+        "Great! Now let's verify your identity. Please enter your PAN number:",
+        'form',
+        { formType: 'pan' }
+      );
+    }
+    
+    // PAN Form
     else if (data.pan) {
       updateUserDetails({ pan: data.pan as string });
       addMessage({ content: `PAN: ${data.pan}`, sender: 'user', type: 'text' });
@@ -110,52 +194,65 @@ export const useChatFlow = () => {
       
       await delay(500);
       await simulateBotResponse(
-        "Perfect! Now I need a few more details. What's your date of birth?",
+        "Perfect! What's your date of birth?",
         'form',
         { formType: 'dob' }
       );
     }
     
+    // DOB Form
     else if (data.dob) {
       updateUserDetails({ dob: data.dob as string });
       addMessage({ content: `DOB: ${data.dob}`, sender: 'user', type: 'text' });
       
+      await delay(500);
       await simulateBotResponse(
-        "Great! What's your employment type?",
+        "Now, please upload your documents for verification.",
         'form',
-        { formType: 'employment' }
+        { formType: 'documents' }
       );
     }
     
-    else if (data.employment) {
-      updateUserDetails({ employment: data.employment as string });
-      addMessage({ content: `Employment: ${data.employment}`, sender: 'user', type: 'text' });
+    // Documents Form
+    else if (data.documents && Array.isArray(data.documents)) {
+      const files = data.documents as File[];
+      addMessage({ content: `Documents uploaded: ${files.length} file(s)`, sender: 'user', type: 'text' });
+      
+      setDocumentsUploaded(true);
       
       await simulateBotResponse(
-        "Almost there! What's your monthly income?",
-        'form',
-        { formType: 'income' }
+        '',
+        'status',
+        { status: 'loading', title: 'Verifying documents...', description: 'Securely processing your files', type: 'kyc' }
       );
-    }
-    
-    else if (data.income) {
-      updateUserDetails({ income: data.income as number });
-      addMessage({ content: `Monthly Income: ₹${data.income.toLocaleString('en-IN')}`, sender: 'user', type: 'text' });
+      
+      await delay(3000);
+      
+      await simulateBotResponse(
+        '',
+        'status',
+        { status: 'success', title: 'Documents Verified!', description: 'All documents accepted', type: 'kyc' }
+      );
+      
+      await delay(1000);
       
       setStep('underwriting');
       
       await simulateBotResponse(
         '',
         'status',
-        { status: 'loading', title: 'Fetching credit score...', description: 'Securely accessing your credit history', type: 'credit' }
+        { status: 'loading', title: 'Generating credit score...', description: 'Securely analyzing your profile', type: 'credit' }
       );
       
       await delay(2500);
       
+      const creditScore = Math.floor(Math.random() * (800 - 650 + 1)) + 650; // Random score 650-800
+      setCreditScore(creditScore);
+      
       await simulateBotResponse(
         '',
         'status',
-        { status: 'success', title: 'Credit Score: 742', description: 'Excellent credit profile!', type: 'credit' }
+        { status: 'success', title: `Credit Score: ${creditScore}`, description: 'Excellent credit profile!', type: 'credit' }
       );
       
       await delay(1000);
@@ -170,11 +267,12 @@ export const useChatFlow = () => {
       
       setStep('sanction');
       
-      // Calculate loan offer based on income
-      const income = data.income as number;
-      const maxLoan = Math.min(income * 20, 1000000);
-      const interestRate = 10.5;
-      const tenure = 36;
+      // Calculate loan offer based on income and requested amount
+      const income = userDetails.income || 50000;
+      const requestedAmount = parseInt(userDetails.loanAmount || '100000');
+      const maxLoan = Math.min(requestedAmount, income * 20, 1000000);
+      const interestRate = creditScore >= 750 ? 9.5 : creditScore >= 700 ? 10.5 : 11.5;
+      const tenure = userDetails.tenure || 36;
       const emi = Math.round((maxLoan * (interestRate / 1200) * Math.pow(1 + interestRate / 1200, tenure)) / (Math.pow(1 + interestRate / 1200, tenure) - 1));
       const processingFee = Math.round(maxLoan * 0.02);
       
@@ -193,7 +291,7 @@ export const useChatFlow = () => {
         'offer'
       );
     }
-  }, [addMessage, updateUserDetails, setStep, setLoanOffer, simulateBotResponse]);
+  }, [addMessage, updateUserDetails, setStep, setLoanOffer, setCreditScore, setDocumentsUploaded, simulateBotResponse, userDetails]);
 
   const acceptOffer = useCallback(async () => {
     addMessage({ content: "I accept the offer!", sender: 'user', type: 'text' });
